@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APEX VAULT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Nat Grotesk Nar Bold';
+            src: local('Nat Grotesk Nar Bold'), local('NatGrotesk-NarBold');
+        }
+
+        :root {
+            --accent: #4db6ac;
+            --bg-dark: #1a1d23;
+            --card-bg: #1e2229;
+            --border-color: #363b45;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #d1d5db;
+            font-family: 'Nat Grotesk Nar Bold', 'Archivo Narrow', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- LOADING OVERLAY --- */
+        #auth-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: var(--bg-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: transform 0.8s cubic-bezier(0.7, 0, 0.3, 1);
+        }
+
+        .slide-up-exit { transform: translateY(-100%); }
+
+        .discord-btn {
+            background-color: #5865F2;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        #loading-wrap { display: none; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(77, 182, 172, 0.1);
+            border-left-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- MAIN CONTENT --- */
+        #main-content { 
+            display: none; 
+            opacity: 0; 
+            transition: opacity 0.6s ease;
+            width: 95%;
+            max-width: 1000px;
+            margin: 120px auto 60px auto; 
+        }
+
+        .list-container {
+            width: 100%; 
+            border: 1px solid var(--border-color); 
+            border-radius: 4px;
+            background-color: var(--card-bg); 
+            overflow: hidden;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+        }
+
+        /* --- SHINY GLASS HEADER --- */
+        .vault-header-bar {
+            padding: 35px 0;
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .vault-header-bar::after {
+            content: '';
+            position: absolute;
+            top: -50%; left: -100%; width: 35%; height: 200%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.18), transparent);
+            transform: rotate(20deg);
+            animation: glass-shine 5s infinite ease-in-out;
+        }
+
+        @keyframes glass-shine {
+            0% { left: -100%; }
+            25% { left: 130%; }
+            100% { left: 130%; }
+        }
+
+        .vault-title {
+            font-size: clamp(18px, 4.5vw, 24px); 
+            color: var(--accent); 
+            letter-spacing: 8px; 
+            font-weight: 800;
+            text-shadow: 0 0 20px rgba(77, 182, 172, 0.4);
+        }
+
+        .game-row {
+            display: grid; 
+            grid-template-columns: 1fr 140px; 
+            padding: 18px 25px; 
+            border-bottom: 1px solid #2d3139; 
+            align-items: center;
+            gap: 15px;
+        }
+
+        .info-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .game-title {
+            color: var(--accent); 
+            font-size: clamp(12px, 2.2vw, 14px); 
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .size-subtext { 
+            color: #a1a1aa; 
+            font-size: 11px; 
+            font-family: 'Inter', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .download-btn {
+            background-color: var(--accent); color: #1a1d23;
+            padding: 10px 14px; font-size: 11px; font-weight: 800;
+            border-radius: 2px; text-decoration: none; text-align: center;
+            transition: 0.2s;
+        }
+        .download-btn:hover { color: #fff !important; background: #3d928a; }
+
+        #user-card {
+            position: fixed; bottom: 25px; right: 25px;
+            background: rgba(30, 34, 41, 0.98);
+            border: 1px solid var(--border-color);
+            padding: 10px 15px; border-radius: 6px; display: none;
+            align-items: center; gap: 12px;
+            backdrop-filter: blur(12px);
+        }
+        .user-avatar { width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--accent); }
+        .user-name { color: var(--accent); font-size: 12px; font-weight: 800; margin: 0; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-overlay">
+        <a href="https://discord.com/oauth2/authorize?client_id=1501167652477861918&response_type=token&redirect_uri=https%3A%2F%2Fapexvault.vercel.app%2Findex.html&scope=identify" 
+           class="discord-btn" id="login-trigger">Login with Discord</a>
+        <div id="loading-wrap"><div class="spinner"></div></div>
+    </div>
+
+    <div id="main-content">
+        <div class="list-container">
+            <div class="vault-header-bar"><h1 class="vault-title">APEX VAULT</h1></div>
+            
+            <!-- COMPLETE LIBRARY -->
+            <div class="game-row">
+                <div class="info-group"><span class="game-title">GRAND THEFT AUTO V</span><span class="size-subtext">Size: 117.61 GB</span></div>
+                <a href="https://tunnel1.dlproxy.uk/download/XAJeWO15O4C19Ai3Jvuqitqg5l1_CCncB25Eaa4Z71JAAM2ppGVMblIY3AWDW8k1fY0JuJ6RuqfNreqTDOqV3ZNpqRZ8J8r9qy-NDNYXkXN9_Rr8S9PgywXbtsE4bjoPzO4TiRoCcYrgouBm-EJqtBSiuPQS94EbAoj-N8Q3KvFXq76S-LEYakmKNBoljh6NR3Lc0-hkX_9MNh5lUr1ITUggstA6bZEtIxRo_Kv9RLmmXfs3T98o9V_v4NT8Ab2ou0JQnMjRkE2s-KqGzKQM7b9Q8lJbvyCj_GgjJsImnRbVyPYSY7I1vM1VRyJuraIkBalhyuVYmjIy99Sifxah5nW8rZQai0uzvrZTpxOETso8jxPSUvTB8l4KoWYaYoGEYHSr5KZpEoe57fL8AQ3mawy3DwsiWREgyBMBJvOpymcfcCaBeo5nnTGx3spsjBQWRAxrLYE-tEQ610ww-k3kqaEOLpph6bvIyHaclpyRWvtjo-Jpm8G7DSHo4hZDL28MLZD3v8nvN-8I97GGRyIQ8YJs1dnXJ6X5WlAUyTwxnan9g7kJeFusxlDn94oVLYFv3f6Ti5FbUuhTsS-LEJ0_nkRmlUDnUC36Sn2i6mvMuDBVoLw_eAByOy2CizVSnPIL?sig=-Qw74cuLaEGssO-Iry9IBrVg69xiX9WkjokMY2usxOg" class="download-btn">DOWNLOAD</a>
+            </div>
+
+            <div class="game-row">
+                <div class="info-group"><span class="game-title">GRAND THEFT AUTO IV</span><span class="size-subtext">Size: 20 GB</span></div>
+                <a href="https://tunnel1.dlproxy.uk/download/IYJPauiQJ5rc6KsONo7yK3BHstHSpi8WwOOHj1Tk1NbA_zVDqVgK2exWBr4huEnQbZu9gSXEvQpzVJ1Umo6fRljE0t1S-jLsbq5vL7e10keU5pK78huCaUkNtGY9PqKFDCeK63mMoz1_p_xf1Ophi6cxbrKyg4HxnUZIcCgL9mkYcbs-5kzClhuwBuYvdduYDEf8_Wns4h2BsysN45_KGCyfRMuPpL3-xV_fM8arHXxT7BgRATgqj-pd0k9u-vyLaGHiEDkpSSugerMcsbFW3QyN6Y1eKvbbvofI-M_fHDhI1M2KjI6TX_PDlXz9rgaDmSXoXMWILd693TsKCOtZWqeuSvngVwwaQu_E01CVpnjWvwj-VgayOEu3Uh2aelQxitJulvVbugafeDgAdTWOGeJpE3FOvTvLFbBL1mrZP_flnnGyh_etvzj1v1lwvhCXbR2_QkMok1bGocykFbOnG4d3A2OwGPlopOuB54xDMHz9Bl7Yt3nnfRdHUC4MrS79IgHz94OS20ne6RI3_-4NDiUkDkX2CGiha7sMWrIFDJVMZpyhuDl9owh-aw2h-Tg-EjJGxmVOq2-D0mw7h8WEGHRvhyn5oyUbVn35bRVP4TUnGS6SE_bjYV1V0STE40bH?sig=dsl78rMuIiuIheFUzTsgckN5084IegnP1YDxVE9Oyns" class="download-btn">DOWNLOAD</a>
+            </div>
+
+            <div class="game-row">
+                <div class="info-group"><span class="game-title">GRAND THEFT AUTO III</span><span class="size-subtext">Size: 4.4 GB</span></div>
+                <a href="https://tunnel1.dlproxy.uk/download/IYJPauiQJ5rc6KsONo7yK3BHstHSpi8WwOOHj1Tk1NbA_zVDqVgK2exWBr4huEnQbZu9gSXEvQpzVJ1Umo6fRljE0t1S-jLsbq5vL7e10kccJ1S7cmN1YaaBcEJNCMC5_zK_zukdhZ3KTIusk7Dl7lTO4Eybe8zlLvogMys2dM66GXg2hwPLTOmyaZZyyFNh5yYVxzdFLumWowgTgUVaiac9H9XQbkXJgPyWO-zhclNgcQ-M8q8REhiLx0vgAFpUV9CLIpTkaq6_81JqfWrymgVDgRmlr8nCKLfG-tEgUfhqumMb6HmN4d_6kcmbOiXWGjf_hfwc6EYAqWPXYejlk2uUbW_43UgrquW4QYcE1zaar5Tg0H3A_JFEyM6CvJJdemkGOX2eD_lm80LI07Sr-R-icmg-zAyCpQJqMRfuMev3qCQbVvtiW0Pb5BaOJW1WgeNnGn1Msf6dfB-ywP-yMFpMK9I-kV0HS6v46RFaYLbvZpYU3qxGLD3tVJHz24SkJmLq9IU5pSO6N3aIqK7yGD6iQHWDCgJGnADDSviE4HOOJ0d7TPoPZ9ajyE8ok_8f8jIiKHIApnezYoVUHu50Kynu9JlQeXlHE2DsJJBJSnw8IrJ1fqMRPO7fUXlrKQTB2p31EZ2C3CIOODiAYRjbRw?sig=HEuxjeAIg0f7fWbjfjFdJX7Vj-ZJrRmBM9znPaKVQGs" class="download-btn">DOWNLOAD</a>
+            </div>
+
+            <div class="game-row">
+                <div class="info-group"><span class="game-title">GRAND THEFT AUTO VC DEFINITIVE</span><span class="size-subtext">Size: 9.1 GB</span></div>
+                <a href="https://tunnel1.dlproxy.uk/download/IYJPauiQJ5rc6KsONo7yK3BHstHSpi8WwOOHj1Tk1NbA_zVDqVgK2exWBr4huEnQbZu9gSXEvQpzVJ1Umo6fRljE0t1S-jLsbq5vL7e10kd_1_IaHxmq1-6zDpQsM1-RxBJ-E6eE62djIhOHCsCPJ2bpCUNCwSVpA4HgL_2Ruu5Don6QfTRu39b8DDBFqJgHpR8GjGIsG_uyzlTFefpWt-2Qomry6KG93nNizQZ7bY0vytOB6nRE2UtvqEWkWOJfXoOLpK5WJzS7bTP6WurU6Z2h3HGqoszhdUpGpF86jZAo-0aP_co7OYv31rfriLp-ECVNW7KXqewV2MAvncfnTGbvwa1ohfFqe0lV0k4WoTMCrlbx86g5AWt-sFFEGRrMA8HX_E6f68nW6LfAdH53_10UJmwY5mA3C7uMPI0rAtLJ4iNg2znEwMSFOiI8q1WH5v4UEnLwBhEHoRoQB8zrtKFjvmcCcDIChHk4ybr-3PlqBUDx8Tb-Qzdl3HLoCL8DtVGZDRbUZ_OvjY86ApF5L77eumdGtQRISkTM_YzNArGZGhqmhJvh9vY7-Rfhtebtk1DaTuhC1GWRSZm7u-2lcFdl7awOIZB_HQv4gmrh1lz8YguyG1hrG3W99KvgLJMe?sig=_F0CXrErz6k9ALbtg4fmcFvEHjxIr9oyA3IzbZI7csc" class="download-btn">DOWNLOAD</a>
+            </div>
+
+            <div class="game-row">
+                <div class="info-group"><span class="game-title">GRAND THEFT AUTO SA DEFINITIVE</span><span class="size-subtext">Size: 18.4 GB</span></div>
+                <a href="https://tunnel1.dlproxy.uk/download/XAJeWO15O4C19Ai3Jvuqitqg5l1_CCncB25Eaa4Z71JAAM2ppGVMblIY3AWDW8k1fY0JuJ6RuqfNreqTDOqV3ZNpqRZ8J8r9qy-NDNYXkXMJQM82i2ps9HrQNOT0ff2LX76rsUf6AeKSlmH5N57hv_J_G0HhDwl039BT9tPe3DNwzs3YK_Bw8d_lAD7FTfxRvkl6HKd5wyOASspzBAqC36iKfWHFBBmPhgnEoIMe4_5wcD8F5lGOXF3kYXOz0m08z2gFGZt499sYKto_OiUy2lW8GA1-tZwsTHg08Ng7PFoPa4U7uJ6c3WixrE3GTkE8Gkbz1Z4m4cNLPs6Z1ca1Sn4XjVL87x_ZXD1s_ZOAKx0yZD3ab0kphLI5o8v-dKpPqf5-wfkGkKISAzghVmlsvK11Z_qC9HgqkylLzWhwgjedmGK5Il41E62eZ5Vu2ZuoK2wwAEt4UuM7qKXk3ddLLiYoea2jyDsmT6W-Ksl0gIY5Du8TdVuu9PB4Vmm953Q2V5zK6Skw3V6lWgEgglNCeVgGrTxAkzzaw0kDmu8gRCTvfCXwWavBkPvyRva0fxHMwUlELXkl8fIwS-kB1BlAHQ7UO1VAL6qVVct5GuOOGkY-PIIRyLe659FJKsAonGIfUuJjk0Gba9qSli003lsQ0zghD-pRg3hyDvZiD8fQkp0?sig=i97EjVloVMT-pYt8qpjA_XoZmhfwpV9eczTTIA2pGkg" class="download-btn">DOWNLOAD</a>
+            </div>
+
+            <div class="game-row">
+                <div class="info-group"><span class="game-title">FORZA HORIZON 5</span><span class="size-subtext">Size: 166 GB</span></div>
+                <a href="https://tunnel1.dlproxy.uk/download/WrTLulKik3KpjnMuO-0gDohCI1WaybS779E_l6yr1UHGRMFfTkE7B5t5Ys5_N2qu8u6HmpGsrEZKftnkvhgxcvRqn6Pp9kceoiJRSTvPjlW9McV7BJ-xx3usIrf-VTZ9_T7vyRXCDX0mGp_LGc9Nd5PD0vaeFIUe-G5Bhmkay8fEuecVna8DGkS2gcGHKviC1kE5C8XbdTPYaT4GZQSZuUbxfxxm9VXU7628y-HoLWXhBzw8qzwr82cwiw-qpLJ4GZQ_RZZw4eooDEpuj2-nNvweAQybUFOXn7sJx0AAEarg0EX9KbRLTKlQr2hfDfKf_LfVj1cpmEK61hZWnaTrDZB2_oTs7mqO01rlctu50if6Gjj5OP3kKHIGzbJJ0gIDQpyNqBGjb7N2LVhgtYx1smziA9zr-60_Cw0oqETw4Ea5gMXzo1bdqzdMi1Cfol5ayb69HnNd96mcUSs-45R9EouEGCNijsa40EHMCMJLR9oiZxEQKmwFMyQj-YtuyNJ30C0e2vOnMUAK_udt7v2t0MposrwbMO3kVK60QqprVdf9GVY7pnDKqVx0VzzFlVa_feahmxzuIxJ7-9ZYRdWjgTWweK7bH5w7_0EWcOtCs3HWrNDPltFwJOUP9evJ6B1k?sig=HEuxjeAIg0f7fWbjfjFdJX7Vj-ZJrRmBM9znPaKVQGs" class="download-btn">DOWNLOAD</a>
+            </div>
+
+            <div class="game-row">
+                <div class="info-group"><span class="game-title">RESIDENT EVIL REQUIEM</span><span class="size-subtext">Size: 75 GB</span></div>
+                <a href="https://tunnel1.dlproxy.uk/download/XAJeWO15O4C19Ai3Jvuqitqg5l1_CCncB25Eaa4Z71JAAM2ppGVMblIY3AWDW8k1fY0JuJ6RuqfNreqTDOqV3ZNpqRZ8J8r9qy-NDNYXkXNzFiMVSk_GLA6Nh3xogT-eb35raodT2DivgMoKPR_CEdYBay-YrJqxppEUfh7ah1EU2AuAZmnuX5WqseH81n9pQR0tsZRPIAtAFINg6Qk2nhj5Djs5ZoeUkQhDQwDhiMFnHQsJxCuvpmHYus9hFqqtcDU5RjfhKp5cL4otozeGcb6GjeIyngga3pobsFSqskv52oDpFaUGNvm60pe0JR3JbIefHlZzNPM2Q57qnpGTfwPVKGWzhyk5U4Q7gDA_KsOswdyVxoO-o0bKjhKIqh-W4AcszgfDs4SmmGuV31wuZdgaP_0_lwKCVx0bjoZZnYiOwxel6xcNluacCHt_YobpoCewsItiZS3CY6PeTjEfZikWo9kx31pYOCvZ8sceNKsdomcDw2QwgAG19vKUE5alkGjoWciJiXC2PnT5MvIXEiaugA1N06Tz47IWW8LADK2tabW9ef079Q47rGjYLZeKQhZPSPbiRt1luC0ensVub11j8wMPuf1jNAtksgfDMBf7ddCGrYXbBhBo84Dk0mkB?sig=6MFz3jxrleaaou_3CTr5bzFblqei9DKu1CsZ_drCoiU" class="download-btn">DOWNLOAD</a>
+            </div>
+
+            <div class="game-row">
+                <div class="info-group"><span class="game-title">ZERO HOUR</span><span class="size-subtext">Size: 15.05 GB</span></div>
+                <a href="https://tunnel1.dlproxy.uk/download/tzIBN59-0rfDkPwEPv_ZZUATrKNgwyVF6OJj0f2VaO6muKf4ljwUMC08-ugdYOkQShXOBA6RBWla0IubEoVw7eS7vI6xHwbZ-WjZTxYNZ7ZTd_A_dZbGj8mxwb933WNJ5szG1DOE_OlfMl3hWKKCYYyWmaa0oe3KPKy2noOvB5oS84V8QDMMLG31_3K2eXspGzEFC2G8hMj1ZBHwR841yQDxf1G103G-b9W5flfj3SUmzfqB4mT9TjjjqidtM1nA0VS3v6TPD8IoDp0ewFeUhHrFaKUtAhp2kHeoA8FadUwO5vlsXQ97U8fAyP-IqsUgl7I2GaM2qqzKt_vjBxcX8grd5T6yxYIToY-jEYLbkrYroiZN1Xd290zcRYU0SsbjGu_mYtzJ-PAptaEUIo92O6_Et_Vy5yvw35V8e7vIJTrF8DGGAOjliZd8jmb0Md58i3fh-vQhyS_bv3_QL_aX21oOpgpMEzRSlK3qGFnMrZ9gxsGdW3wYWdfKc3Ivgn-wgrRbkAoAjsIPpflIK6tTjOegrJCe8Ab2pYMK7L0B43OJ204kX8l36Xiaqw0Ta5LlOR0DIUuvZaN10120U-sPNcIC82ZtIOYpkFQESdlu1iU?sig=HEuxjeAIg0f7fWbjfjFdJX7Vj-ZJrRmBM9znPaKVQGs" class="download-btn">DOWNLOAD</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="user-card">
+        <img src="" id="avatar" class="user-avatar" alt="">
+        <p class="user-name" id="username">USER</p>
+    </div>
+
+    <script>
+        window.onload = () => {
+            const fragment = new URLSearchParams(window.location.hash.slice(1));
+            const token = fragment.get('access_token');
+
+            if (token) {
+                if (!window.location.hash.includes('access_token')) {
+                    window.location.hash = `access_token=${token}`;
+                }
+
+                document.getElementById('login-trigger').style.display = 'none';
+                document.getElementById('loading-wrap').style.display = 'block';
+
+                fetch('https://discord.com/api/users/@me', {
+                    headers: { authorization: `Bearer ${token}` }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    setTimeout(() => {
+                        const overlay = document.getElementById('auth-overlay');
+                        overlay.classList.add('slide-up-exit'); 
+                        
+                        setTimeout(() => {
+                            overlay.style.display = 'none';
+                            const main = document.getElementById('main-content');
+                            main.style.display = 'block';
+                            setTimeout(() => main.style.opacity = '1', 50);
+                            document.getElementById('user-card').style.display = 'flex';
+                            document.getElementById('username').innerText = data.username.toUpperCase();
+                            document.getElementById('avatar').src = data.avatar ? `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.png` : "https://cdn.discordapp.com/embed/avatars/0.png";
+                        }, 800);
+                    }, 1000);
+                });
+            }
+        };
+    </script>
+</body>
+</html>
